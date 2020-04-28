@@ -13,13 +13,14 @@ services:
     environment:
       DB_HOST: joynr-db
       DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
       MQTT_HOST: mqtt
       MQTT_PORT: 1883
   joynr-db:
     image: "postgres:9.5"
     container_name: joynr_db
     environment:
-      # This is just an example. Storing the password here is not a good idea and should not be used in production.
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_DB: joynr-discovery-directory

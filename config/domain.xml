@@ -3,6 +3,8 @@
 
     <system-property name="joynr.db.host" value="${ENV=DB_HOST}"/>
     <system-property name="joynr.db.port" value="${ENV=DB_PORT}"/>
+    <system-property name="joynr.db.user" value="${ENV=DB_USER}"/>
+    <system-property name="joynr.db.password" value="${ENV=DB_PASSWORD}"/>
     <system-property name="joynr.messaging.mqtt.brokeruri" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
     <system-property name="joynr.messaging.discoverydirectoryurl" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
     <system-property name="joynr.messaging.domainaccesscontrollerurl" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
@@ -47,8 +49,8 @@
         <jdbc-connection-pool datasource-classname="org.postgresql.ds.PGConnectionPoolDataSource" name="JoynrPool"
                               res-type="javax.sql.ConnectionPoolDataSource">
             <property name="connectionAttributes" value="create"/>
-            <property name="user" value="postgres"/>
-            <property name="password" value="postgres"/>
+            <property name="user" value="${joynr.db.user}"/>
+            <property name="password" value="${joynr.db.password}"/>
             <property name="portNumber" value="${joynr.db.port}"/>
             <property name="databaseName" value="joynr-discovery-directory"/>
             <property name="serverName" value="${joynr.db.host}"/>
