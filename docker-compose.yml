@@ -1,0 +1,28 @@
+version: "3.7"
+services:
+  joynr-discovery-directory:
+    image: "holomekc/joynr-discovery-directory-jee:latest"
+    container_name: joynr_discovery_directory_jee
+    build: .
+    depends_on:
+      - joynr-db
+      - mqtt
+    ports:
+    - "8088:8080"
+    - "8089:8081"
+    environment:
+      DB_HOST: joynr-db
+      DB_PORT: 5432
+      MQTT_HOST: mqtt
+      MQTT_PORT: 1883
+  joynr-db:
+    image: "postgres:9.5"
+    container_name: joynr_db
+    environment:
+      # This is just an example. Storing the password here is not a good idea and should not be used in production.
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: joynr-discovery-directory
+  mqtt:
+    image: "eclipse-mosquitto"
+    container_name: rs_mosquitto

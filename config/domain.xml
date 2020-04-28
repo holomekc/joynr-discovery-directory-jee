@@ -1,0 +1,308 @@
+<domain application-root="${com.sun.aas.instanceRoot}/applications" version="106"
+        log-root="${com.sun.aas.instanceRoot}/logs">
+
+    <system-property name="joynr.db.host" value="${ENV=DB_HOST}"/>
+    <system-property name="joynr.db.port" value="${ENV=DB_PORT}"/>
+    <system-property name="joynr.messaging.mqtt.brokeruri" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
+    <system-property name="joynr.messaging.discoverydirectoryurl" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
+    <system-property name="joynr.messaging.domainaccesscontrollerurl" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
+
+    <resources>
+        <!-- Some default configuration -->
+        <jdbc-resource pool-name="H2Pool" object-type="system-all" jndi-name="jdbc/__default"/>
+
+        <jdbc-connection-pool is-isolation-level-guaranteed="false" datasource-classname="org.h2.jdbcx.JdbcDataSource"
+                              name="H2Pool" res-type="javax.sql.DataSource">
+            <property name="URL"
+                      value="jdbc:h2:${com.sun.aas.instanceRoot}/lib/databases/embedded_default;AUTO_SERVER=TRUE"/>
+        </jdbc-connection-pool>
+
+        <context-service object-type="system-all" description="context service"
+                         jndi-name="concurrent/__defaultContextService"/>
+
+        <managed-executor-service keep-alive-seconds="300" object-type="system-all" maximum-pool-size="200"
+                                  hung-after-seconds="300" jndi-name="concurrent/__defaultManagedExecutorService"
+                                  long-running-tasks="true"/>
+
+        <managed-scheduled-executor-service keep-alive-seconds="300" object-type="system-all" hung-after-seconds="300"
+                                            jndi-name="concurrent/__defaultManagedScheduledExecutorService"
+                                            long-running-tasks="true"/>
+
+        <managed-thread-factory object-type="system-all" description="thread factory"
+                                jndi-name="concurrent/__defaultManagedThreadFactory"/>
+
+        <managed-executor-service core-pool-size="4" keep-alive-seconds="10" task-queue-capacity="50"
+                                  maximum-pool-size="15"
+                                  hung-after-seconds="3" jndi-name="concurrent/statusHealthExecutorService"/>
+        <managed-executor-service core-pool-size="4" keep-alive-seconds="10" task-queue-capacity="50"
+                                  maximum-pool-size="15"
+                                  hung-after-seconds="3" jndi-name="concurrent/statusMetricsExecutorService"/>
+
+        <!-- [JOYNR] -->
+        <managed-scheduled-executor-service core-pool-size="120"
+                                            jndi-name="concurrent/joynrMessagingScheduledExecutor"/>
+        <managed-scheduled-executor-service core-pool-size="120"
+                                            jndi-name="concurrent/joynrMessageWorkerScheduledExecutor"/>
+
+        <jdbc-connection-pool datasource-classname="org.postgresql.ds.PGConnectionPoolDataSource" name="JoynrPool"
+                              res-type="javax.sql.ConnectionPoolDataSource">
+            <property name="connectionAttributes" value="create"/>
+            <property name="user" value="postgres"/>
+            <property name="password" value="postgres"/>
+            <property name="portNumber" value="${joynr.db.port}"/>
+            <property name="databaseName" value="joynr-discovery-directory"/>
+            <property name="serverName" value="${joynr.db.host}"/>
+        </jdbc-connection-pool>
+
+        <jdbc-resource pool-name="JoynrPool" jndi-name="joynr/DiscoveryDirectoryDS"/>
+        <jdbc-resource pool-name="JoynrPool" jndi-name="joynr/DomainAccessControllerDS"/>
+    </resources>
+    <servers>
+        <server config-ref="server-config" name="server">
+            <resource-ref ref="jdbc/__default"/>
+
+            <resource-ref ref="concurrent/__defaultContextService"/>
+            <resource-ref ref="concurrent/__defaultManagedExecutorService"/>
+            <resource-ref ref="concurrent/__defaultManagedScheduledExecutorService"/>
+            <resource-ref ref="concurrent/__defaultManagedThreadFactory"/>
+
+            <!-- [JOYNR] -->
+            <resource-ref ref="joynr/DiscoveryDirectoryDS"/>
+            <resource-ref ref="joynr/DomainAccessControllerDS"/>
+
+            <resource-ref ref="concurrent/joynrMessagingScheduledExecutor"/>
+            <resource-ref ref="concurrent/joynrMessageWorkerScheduledExecutor"/>
+        </server>
+    </servers>
+    <configs>
+        <config name="server-config">
+            <!-- EJB-Container -->
+            <ejb-container max-pool-size="100">
+                <property name="thread-core-pool-size" value="20"/>
+                <property name="thread-max-pool-size" value="100"/>
+                <property name="thread-keep-alive-seconds" value="60"/>
+                <ejb-timer-service ejb-timer-service="DataGrid">
+                    <property name="reschedule-failed-timer" value="true"/>
+                </ejb-timer-service>
+            </ejb-container>
+
+            <!-- Thread pools -->
+            <thread-pools>
+                <!-- [HTTP] Thread pool -->
+                <thread-pool idle-thread-timeout-seconds="60" name="http-thread-pool" min-thread-pool-size="1"
+                             max-thread-pool-size="50"/>
+            </thread-pools>
+
+
+            <!-- [HTTP] configuration -->
+            <http-service>
+                <access-log rotation-interval-in-minutes="15"/>
+                <virtual-server network-listeners="http-listener, https-listener" access-log=""
+                                access-logging-enabled="false" id="server"/>
+            </http-service>
+            <network-config>
+                <protocols>
+                    <protocol name="http-listener">
+                        <!-- If you need comet-support add: comet-support-enabled="true" -->
+                        <http xpowered-by="false" max-connections="250" default-virtual-server="server">
+                            <file-cache/>
+                        </http>
+                        <ssl/>
+                    </protocol>
+                    <protocol name="https-listener" security-enabled="true">
+                        <!-- If you need comet-support add: comet-support-enabled="true" -->
+                        <http xpowered-by="false" max-connections="250" default-virtual-server="server">
+                            <file-cache/>
+                        </http>
+                        <ssl classname="com.sun.enterprise.security.ssl.GlassfishSSLImpl" cert-nickname="s1as"/>
+                    </protocol>
+                </protocols>
+
+                <network-listeners>
+                    <!-- Here you could also disable http port -->
+                    <network-listener protocol="http-listener" port="8080" name="http-listener"
+                                      thread-pool="http-thread-pool" transport="tcp" enabled="true"/>
+
+                    <network-listener protocol="https-listener" port="8081" name="https-listener"
+                                      thread-pool="http-thread-pool" transport="tcp" enabled="true"/>
+                </network-listeners>
+
+                <transports>
+                    <transport name="tcp" byte-buffer-type="HEAP"/>
+                </transports>
+            </network-config>
+
+            <!-- Some payara 5 configuration -->
+            <payara-executor-service-configuration/>
+
+            <cdi-service enable-concurrent-deployment="true" pre-loader-thread-pool-size="2"/>
+
+            <hazelcast-runtime-configuration/>
+            <hazelcast-config-specific-configuration/>
+
+            <health-check-service-configuration>
+                <log-notifier enabled="false"/>
+                <eventbus-notifier enabled="false"/>
+                <cpu-usage-checker name="CPU" time="1" enabled="false"/>
+                <machine-memory-usage-checker name="MMEM" time="3" enabled="false"/>
+                <heap-memory-usage-checker time="3" enabled="false"/>
+                <hogging-threads-checker name="HT" enabled="false"/>
+                <garbage-collector-checker name="GC" enabled="false"/>
+            </health-check-service-configuration>
+
+            <request-tracing-service-configuration>
+                <log-notifier enabled="true"/>
+            </request-tracing-service-configuration>
+
+            <notification-service-configuration enabled="true">
+                <log-notifier-configuration enabled="true"/>
+                <eventbus-notifier-configuration/>
+            </notification-service-configuration>
+
+            <batch-runtime-configuration table-prefix="jbatch" data-source-lookup-name="jdbc/__default"/>
+
+            <monitoring-service-configuration log-frequency="30">
+                <log-notifier/>
+                <eventbus-notifier/>
+            </monitoring-service-configuration>
+
+            <microprofile-config/>
+            <microprofile-openapi-configuration/>
+            <microprofile-metrics-configuration/>
+            <microprofile-fault-tolerance-configuration/>
+
+            <stuck-threads-checker/>
+
+            <amx-configuration enabled="true"/>
+
+            <metrics-health-check-configuration enabled="false"/>
+
+            <phone-home-runtime-configuration enabled="false"/>
+
+            <connector-service class-loading-policy="global"/>
+
+            <transaction-service tx-log-dir="${com.sun.aas.instanceRoot}/logs"/>
+
+
+            <admin-service system-jmx-connector-name="system" type="das-and-server">
+                <jmx-connector address="0.0.0.0" port="8686" name="system" auth-realm-name="admin-realm" enabled="false"
+                               security-enabled="false"/>
+                <das-config/>
+            </admin-service>
+
+
+            <security-service>
+                <!-- Some default configuration -->
+                <auth-realm classname="com.sun.enterprise.security.auth.realm.file.FileRealm" name="admin-realm">
+                    <property name="file" value="${com.sun.aas.instanceRoot}/config/admin-keyfile"/>
+                    <property name="jaas-context" value="fileRealm"/>
+                </auth-realm>
+                <auth-realm classname="com.sun.enterprise.security.auth.realm.file.FileRealm" name="file">
+                    <property name="file" value="${com.sun.aas.instanceRoot}/config/keyfile"/>
+                    <property name="jaas-context" value="fileRealm"/>
+                </auth-realm>
+                <auth-realm classname="com.sun.enterprise.security.auth.realm.certificate.CertificateRealm"
+                            name="certificate"/>
+
+                <jacc-provider policy-provider="com.sun.enterprise.security.provider.PolicyWrapper" name="default"
+                               policy-configuration-factory-provider="com.sun.enterprise.security.provider.PolicyConfigurationFactoryImpl">
+                    <property name="repository" value="${com.sun.aas.instanceRoot}/generated/policy"/>
+                </jacc-provider>
+                <jacc-provider policy-provider="com.sun.enterprise.security.jacc.provider.SimplePolicyProvider"
+                               name="simple"
+                               policy-configuration-factory-provider="com.sun.enterprise.security.jacc.provider.SimplePolicyConfigurationFactory"/>
+                <audit-module classname="com.sun.enterprise.security.ee.Audit" name="default">
+                    <property name="auditOn" value="false"/>
+                </audit-module>
+
+                <message-security-config auth-layer="SOAP">
+                    <provider-config provider-type="client" provider-id="XWS_ClientProvider"
+                                     class-name="com.sun.xml.wss.provider.ClientSecurityAuthModule">
+                        <request-policy auth-source="content"/>
+                        <response-policy auth-source="content"/>
+                        <property name="encryption.key.alias" value="s1as"/>
+                        <property name="signature.key.alias" value="s1as"/>
+                        <property name="dynamic.username.password" value="false"/>
+                        <property name="debug" value="false"/>
+                    </provider-config>
+                    <provider-config provider-type="client" provider-id="ClientProvider"
+                                     class-name="com.sun.xml.wss.provider.ClientSecurityAuthModule">
+                        <request-policy auth-source="content"/>
+                        <response-policy auth-source="content"/>
+                        <property name="encryption.key.alias" value="s1as"/>
+                        <property name="signature.key.alias" value="s1as"/>
+                        <property name="dynamic.username.password" value="false"/>
+                        <property name="debug" value="false"/>
+                        <property name="security.config"
+                                  value="${com.sun.aas.instanceRoot}/config/wss-server-config-1.0.xml"/>
+                    </provider-config>
+                    <provider-config provider-type="server" provider-id="XWS_ServerProvider"
+                                     class-name="com.sun.xml.wss.provider.ServerSecurityAuthModule">
+                        <request-policy auth-source="content"/>
+                        <response-policy auth-source="content"/>
+                        <property name="encryption.key.alias" value="s1as"/>
+                        <property name="signature.key.alias" value="s1as"/>
+                        <property name="debug" value="false"/>
+                    </provider-config>
+                    <provider-config provider-type="server" provider-id="ServerProvider"
+                                     class-name="com.sun.xml.wss.provider.ServerSecurityAuthModule">
+                        <request-policy auth-source="content"/>
+                        <response-policy auth-source="content"/>
+                        <property name="encryption.key.alias" value="s1as"/>
+                        <property name="signature.key.alias" value="s1as"/>
+                        <property name="debug" value="false"/>
+                        <property name="security.config"
+                                  value="${com.sun.aas.instanceRoot}/config/wss-server-config-1.0.xml"/>
+                    </provider-config>
+                </message-security-config>
+                <property name="default-digest-algorithm" value="SHA-256"/>
+            </security-service>
+
+            <group-management-service>
+                <failure-detection/>
+            </group-management-service>
+
+            <monitoring-service>
+                <module-monitoring-levels/>
+            </monitoring-service>
+
+            <availability-service>
+                <web-container-availability sso-failover-enabled="true" persistence-scope="modified-session"/>
+                <ejb-container-availability sfsb-persistence-type="hazelcast"/>
+            </availability-service>
+        </config>
+    </configs>
+    <property name="administrative.domain.name" value="domain1"/>
+    <deployment-groups/>
+    <clusters/>
+
+    <managed-job-config/>
+    <system-applications/>
+
+    <security-configurations>
+        <authentication-service default="true" name="adminAuth" use-password-credential="true">
+            <security-provider provider-name="adminSpc" name="spcrealm" type="LoginModule">
+                <login-module-config module-class="com.sun.enterprise.admin.util.AdminLoginModule"
+                                     control-flag="sufficient" name="adminSpecialLM">
+                    <property name="config" value="server-config"/>
+                    <property name="auth-realm" value="admin-realm"/>
+                </login-module-config>
+            </security-provider>
+            <security-provider provider-name="adminFile" name="filerealm" type="LoginModule">
+                <login-module-config module-class="com.sun.enterprise.security.auth.login.FileLoginModule"
+                                     control-flag="sufficient" name="adminFileLM">
+                    <property name="config" value="server-config"/>
+                    <property name="auth-realm" value="admin-realm"/>
+                </login-module-config>
+            </security-provider>
+        </authentication-service>
+        <authorization-service default="true" name="authorizationService">
+            <security-provider provider-name="simpleAuthorizationProvider" name="simpleAuthorization" type="Simple">
+                <authorization-provider-config name="simpleAuthorizationProviderConfig"
+                                               support-policy-deploy="false"/>
+            </security-provider>
+        </authorization-service>
+    </security-configurations>
+
+    <applications/>
+</domain>
