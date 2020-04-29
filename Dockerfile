@@ -1,4 +1,4 @@
-FROM amazoncorretto:8 as joynr-discovery-dicretory-jee
+FROM amazoncorretto:8
 
 MAINTAINER holomekc.github@gmail.com
 
@@ -18,8 +18,6 @@ WORKDIR /home/app
 RUN mkdir ../runtime
 RUN mkdir ../runtime/lib
 RUN mkdir ../runtime/runtime
-RUN touch ../runtime/runtime/.gitkeep
-RUN chown 0:0 ../runtime/runtime/.gitkeep
 
 RUN echo "Download payara 5 micro"
 RUN wget --no-check-certificate --no-cache --tries=10 -O payara-micro-server.jar https://repo1.maven.org/maven2/fish/payara/extras/payara-micro/$PAYARA_VERSION/payara-micro-$PAYARA_VERSION.jar

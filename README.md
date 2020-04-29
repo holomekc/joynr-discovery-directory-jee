@@ -28,7 +28,7 @@ docker build --build-arg PAYARA_VERSION=5.201 --build-arg POSTGRES_VERSION=42.2.
 see docker-compose.yml for an example
 
 ## Changelog
-### 1
+### 1 
 * PAYARA_VERSION: 5.201
 * POSTGRES_VERSION: 42.2.5
 * JOYNR_VERSION: 1.4.0
