@@ -7,8 +7,6 @@ RUN yum install -y tar tar less procps wget curl shadow-utils.x86_64 which
 ENV JAVA_APP_JAR="payara-micro-server.jar" \
   JAVA_ARGS="--deploy /home/app/discovery-directory.war --unpackdir /home/runtime --domainConfig /home/app/domain.xml"
 
-USER 0
-
 ARG PAYARA_VERSION=5.201
 ARG POSTGRES_VERSION=42.2.5
 ARG JOYNR_VERSION=1.4.0
