@@ -3,6 +3,7 @@
 
     <system-property name="joynr.db.host" value="${ENV=DB_HOST}"/>
     <system-property name="joynr.db.port" value="${ENV=DB_PORT}"/>
+    <system-property name="joynr.db.database" value="${ENV=DB_DATABASE}"/>
     <system-property name="joynr.db.user" value="${ENV=DB_USER}"/>
     <system-property name="joynr.db.password" value="${ENV=DB_PASSWORD}"/>
     <system-property name="joynr.messaging.mqtt.brokeruri" value="tcp://${ENV=MQTT_HOST}:${ENV=MQTT_PORT}"/>
@@ -52,7 +53,7 @@
             <property name="user" value="${joynr.db.user}"/>
             <property name="password" value="${joynr.db.password}"/>
             <property name="portNumber" value="${joynr.db.port}"/>
-            <property name="databaseName" value="joynr-discovery-directory"/>
+            <property name="databaseName" value="${joynr.db.database}"/>
             <property name="serverName" value="${joynr.db.host}"/>
         </jdbc-connection-pool>
 
@@ -93,6 +94,7 @@
                 <!-- [HTTP] Thread pool -->
                 <thread-pool idle-thread-timeout-seconds="60" name="http-thread-pool" min-thread-pool-size="1"
                              max-thread-pool-size="50"/>
+                <thread-pool max-thread-pool-size="50" name="thread-pool-1" />
             </thread-pools>
 
 

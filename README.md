@@ -20,6 +20,7 @@ docker build --build-arg PAYARA_VERSION=5.201 --build-arg POSTGRES_VERSION=42.2.
 ## Configuration
 * DB_HOST: Host of database
 * DB_PORT: Port of database
+* DB_DATABASE: Database name
 * DB_USER: Database user
 * DB_PASSWORD: Database password
 * MQTT_HOST: Host of MQTT broker

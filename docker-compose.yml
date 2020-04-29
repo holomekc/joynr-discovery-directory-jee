@@ -15,6 +15,7 @@ services:
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: postgres
+      DB_DATABASE: joynr_discovery_directory
       MQTT_HOST: mqtt
       MQTT_PORT: 1883
   joynr-db:
@@ -22,8 +23,8 @@ services:
     container_name: joynr_db
     environment:
       POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: joynr-discovery-directory
+      POSTGRES_USER: postgres_rs
+      POSTGRES_DB: joynr_discovery_directory
   mqtt:
     image: "eclipse-mosquitto"
     container_name: rs_mosquitto
